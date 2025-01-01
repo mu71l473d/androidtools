@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Author: RB
+#@Author: RB
 # Shell Script for Installing JDK, Android Studio & Creating Desktop Icon
 
 BLUE='\033[1;36m'

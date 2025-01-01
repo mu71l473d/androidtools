@@ -1,6 +1,8 @@
 #!/bin/bash
 
-#going
+#@Author: RB
+
+#going to attempt to run mobsf from a default location
 cd /opt/android/Mobile-Security-Framework-MobSF/
 bash run.sh & 
 cd -

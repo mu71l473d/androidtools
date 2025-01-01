@@ -2,7 +2,7 @@
 
 #A simple app download script, which pulls installed apps uploads them to mobsf for evaluation when needed. 
 #@Thanks to Pedro Rodrigues at Stack Overflow for the initial idea: https://stackoverflow.com/questions/4032960/how-do-i-get-an-apk-file-from-an-android-device
-#@author Rene Bisperink
+#@Author: RB
 #@version 0.2
 
 
