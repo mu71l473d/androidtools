@@ -1,0 +1,10 @@
+#!/bin/bash
+
+GREEN='\033[1;32m'
+NC='\033[0m'
+
+echo -e "${GREEN} [*] Unsetting the android Proxy${NC}"
+adb shell settings delete global http_proxy
+adb shell settings delete global global_http_proxy_host
+adb shell settings delete global global_http_proxy_port
+adb shell settings put global http_proxy :0

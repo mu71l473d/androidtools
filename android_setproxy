@@ -1,0 +1,27 @@
+#!/bin/bash
+
+eth0ip="$(ip addr show eth0 | grep -Po 'inet \K[\d.]+')"
+wlan0ip="$(ip addr show wlan0 | grep -Po 'inet \K[\d.]+')"
+
+GREEN='\033[1;32m'
+NC='\033[0m'
+
+echo -e "${GREEN} [*] A script to set the android proxy settings to the best applicable settings. ${NC}"
+if [ ! -z "$eth0ip" ];
+  then
+    echo "Choosing LAN with proxy $eth0ip:8082"
+    adb shell settings put global http_proxy $eth0ip:8082
+    exit
+  else
+    echo "no valid ip addresses were found to set the proxy using eth0"
+fi
+
+if [ ! -z "$wlan0ip" ];
+  then
+    echo "Choosing LAN with proxy $wlan0ip:8082"
+    adb shell settings put global http_proxy $wlan0ip:8082
+    exit
+  else
+    echo "no valid ip addresses were found to set the proxy using wlan0"
+fi
+

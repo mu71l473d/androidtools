@@ -1,0 +1,138 @@
+#!/bin/bash
+
+#A simple app download script, which pulls installed apps uploads them to mobsf for evaluation when needed. 
+#@Thanks to Pedro Rodrigues at Stack Overflow for the initial idea: https://stackoverflow.com/questions/4032960/how-do-i-get-an-apk-file-from-an-android-device
+#@author Rene Bisperink
+#@version 0.2
+
+
+BLUE='\033[1;36m'
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+NC='\033[0m'
+
+set -e
+set -o pipefail
+
+if [ -z "$1" ]; then
+    echo -e "${GREEN}You must pass a package or name to search to this function! ${NC}"
+    echo "Ex.: android_pull_apk \"com.kiwa.insecureshop\" or"
+    echo "Ex.: android_pull_apk \"insecureshop\""
+fi
+
+if [ -z "$(adb shell pm list packages | grep -i $1)" ]; then
+    echo "no correct packages could be found with this name or term"
+fi
+
+echo -e "${GREEN}[*] The device the app is extracted from is: ${NC}"      
+adb devices | sed -n '2p'
+
+get_location="$(adb shell pm list packages | grep -i $1 | awk -F':' '{print $2}')"
+get_version="$(adb shell dumpsys package ${get_location} | grep versionName | awk -F'=' '{print $2}')"
+echo -e "\n${GREEN}[*] The used package is ${get_location} with version number ${get_version}. ${NC}"
+echo -e "\n${GREEN}[*] setting the outputfolder to ./extracted_${get_location}-${get_version} ${NC}" 
+destination="extracted_${get_location}-${get_version}"
+mkdir -p "$destination"
+echo -e "\n${GREEN}[*] Getting the path for ${get_location}. ${NC}"
+
+adb shell pm path "${get_location}" | awk -F ':' '{print $2}' | tee ${get_location}-${get_version}.list
+
+for i in $(cat ${get_location}-${get_version}.list)
+do
+  	echo -e "${GREEN}[*] Pulling $i. ${NC}" 
+   	adb pull $i ${destination}
+done
+    
+echo -e "\n${GREEN}[*] Renaming base.apk to ${get_location}-${get_version}.apk ${NC}"
+mv  $destination/base.apk  $destination/${get_location}-${get_version}.apk
+
+echo -e "\n${GREEN}[*] The hashes for the extracted files are: ${NC}"	
+sha256sum $destination/*.apk | tee hashes_${get_location}-${get_version}.list
+
+echo -e "${GREEN}[*] The hashes are written to hashes_${get_location}-${get_version}.list ${NC}"
+
+echo -e "${GREEN}\n[*] checking if Mobsf is running ${NC}"
+if [ ! pgrep -f mobsf &> /dev/null ]
+then
+      	echo -e "${GREEN}\n[*] Mobsf is not running${NC}"
+      	if [[ -f "~/.local/bin/mobsf" ]]; then
+			echo -e "${RED}\n[*] Attempting to start mobsf ${NC}"
+			startmobsf=echo $(which mobsf | head -n 1)
+      		$startmobsf &
+		else
+			echo -e "${RED}\n[*] Not being able to start it. ${NC}"
+			exit 1	
+      	fi
+else
+      echo -e "${GREEN}\n[*] Mobsf is running${NC}"
+fi
+
+read -p "What is the mobsf hostname (default: localhost, press ENTER to continue): " mobsfhostname
+if [ -z "${mobsfhostname}" ];
+then
+    mobsfhostname='localhost'
+    echo -e "${GREEN}[*] No parameter entered. Attempting to set the hostname to $mobsfhostname. \n${NC}"
+fi
+
+read -p "What is the mobsf port (default: 8000, press ENTER to continue): " mobsfport
+if [ -z "${mobsfport}" ];
+then
+    mobsfport=8000
+    echo -e "${GREEN}[*] No parameter entered. Attempting to set the port to $mobsfport. \n${NC}"
+fi
+
+echo -e "${GREEN}[*] Attempting to pull api key from $mobsfhostname:$mobsfport (MobSF) ${NC}"
+	
+curl http://$mobsfhostname:$mobsfport/api_docs -o apidocs.file
+
+if [ ! -s apidocs.file ]
+then
+	read -p "What is the mobsf Username (default: mobsf): " mobsfusername
+    if [ -z "${mobsfusername}" ];
+    then
+        mobsfusername='mobsf'
+        echo -e "${GREEN}[*] No parameter entered. Attempting to set the username to $mobsfusername. \n${NC}"
+    fi
+	read -p "What is the mobsf Password (default: mobsf): " mobsfpassword
+    if [ -z "${mobsfpassword}" ];
+    then
+        mobsfpassword='mobsf'
+        echo -e "${GREEN}[*] No parameter entered. Attempting to set the password to $mobsfpassword. \n${NC}"
+    fi
+	curl --path-as-is -i -s -k -X $'POST' \
+    	-H $'Host: $mobsfhostname:$mobsfport' -H $'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0' -H $'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' -H $'Accept-Language: en-US,en;q=0.5' -H $'Accept-Encoding: gzip, deflate, br' -H $'Content-Type: application/x-www-form-urlencoded' -H $'Content-Length: 114' -H $'Origin: http://$mobsfhostname:$mobsfport' -H $'Connection: keep-alive' -H $'Referer: http://$mobsfhostname:$mobsfport/login/?next=/api_docs' -H $'Upgrade-Insecure-Requests: 1' -H $'Sec-Fetch-Dest: document' -H $'Sec-Fetch-Mode: navigate' -H $'Sec-Fetch-Site: same-origin' -H $'Sec-Fetch-User: ?1' -H $'Priority: u=0, i' \
+    	-b $'language=en; welcomebanner_status=dismiss; cookieconsent_status=dismiss; continueCode=vLeVxlRzkNb47vKDPMo5Lq8wdzVtvfkDuejdjn6EZm2ygrX19BpaQWOJY3oM' \
+    	--data-binary $"csrfmiddlewaretoken=EfjRIamAWFiOFV9dnh06pIEmMvQ758BdtVQG9qp7qPcsYRXib4ZEWaVlLWpCPnWM&username=$mobsfusername&password=$mobsfpassword" \
+    	$"http://$mobsfhostname:$mobsfport/login/?next=/api_docs" -o sessionid.file
+
+	sessionid="$(grep -i "Set-Cookie" sessionid.file | awk -F " " '{ print $2 }' | awk -F ";" '{ print $1 }')"
+
+	curl --path-as-is -i -s -k -X $'GET' \
+    	-H $'Host: $mobsfhostname:$mobsfport' -H $'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0' -H $'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' -H $'Accept-Language: en-US,en;q=0.5' -H $'Accept-Encoding: gzip, deflate, br' -H $'Referer: http://$mobsfhostname:$mobsfport/login/?next=/api_docs' -H $'Connection: keep-alive' -H $'Upgrade-Insecure-Requests: 1' -H $'Sec-Fetch-Dest: document' -H $'Sec-Fetch-Mode: navigate' -H $'Sec-Fetch-Site: same-origin' -H $'Sec-Fetch-User: ?1' -H $'Priority: u=0, i' \
+	    -b $"language=en; welcomebanner_status=dismiss; cookieconsent_status=dismiss; continueCode=vLeVxlRzkNb47vKDPMo5Lq8wdzVtvfkDuejdjn6EZm2ygrX19BpaQWOJY3oM; $sessionid" \
+	    $"http://$mobsfhostname:$mobsfport/api_docs" -o apidocs.file
+fi
+
+api_key="$(grep -i "API Key: " apidocs.file | awk -F ">" '{ print $3 }' | awk -F "<" '{ print $1 }')"
+
+
+if [ -z $api_key ]
+then
+	api_key="$(grep -i "REST API Key: " apidocs.file | awk -F ">" '{ print $3 }' | awk -F "<" '{ print $1 }')"
+fi
+echo $api_key
+
+echo -e "${GREEN}[*] using the API key retrieved from MobSF ${NC}"
+echo -e "${GREEN}[*] Uploading the file to MobSF ${NC}"
+curl -F "file=@${destination}/${get_location}-${get_version}.apk" http://$mobsfhostname:$mobsfport/api/v1/upload -H "X-Mobsf-Api-Key: ${api_key}" 
+
+md5sum_apk=$(md5sum ${destination}/${get_location}-${get_version}.apk | awk -F " " '{ print $1 }' )
+echo "${md5sum_apk}" > app-${get_location}-${get_version}.apk-md5sum.log
+
+
+echo -e "${GREEN}\n[*] Making sure the file is uploaded so sleeping 15 seconds${NC}"
+sleep 15
+
+echo -e "${GREEN}\n[*] Attempting to start the scan on ${get_location}-${get_version}.apk \n${NC}"
+curl -X POST --url http://$mobsfhostname:$mobsfport/api/v1/scan --data "scan_type=apk&file_name=${get_location}-${get_version}.apk&hash=${md5sum_apk}" -H "X-Mobsf-Api-Key: ${api_key}"  -H "Authorization: ${api_key}" | tee mobsf-json-scanoutput.log
+

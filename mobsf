@@ -1,0 +1,6 @@
+#!/bin/bash
+
+#going
+cd /opt/android/Mobile-Security-Framework-MobSF/
+bash run.sh & 
+cd -
