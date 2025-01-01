@@ -10,70 +10,70 @@ NC='\033[0m'
 
 # Install JDK24
 JDKInstall() {
-	echo -e "${GREEN}[*] Installing JDK ${NC}"
-	echo -e "${GREEN}[*] Enter your Password then Sit back and Relax ${NC}"
-	sudo apt update -y
-	sudo apt install openjdk-24-jdk openjdk-24-jre -y
-	echo -e "${GREEN}[*] Setting Java Path Variable ${NC}"
-	export JAVA_HOME=/usr/lib/jvm/java-24-openjdk-amd64
-	echo -e "${GREEN}[*] Testing JAVA_HOME Path ${NC}"
-	echo $JAVA_HOME
-	echo -e "${GREEN}[*] Adding JAVA bin directory to the PATH variable ${NC}"
-	export PATH=$PATH:$JAVA_HOME/bin
-	echo -e "${GREEN}[*] Testing PATH Variable ${NC}"
-	echo $PATH
-	echo -e "${GREEN}[*] Testing Java Installation ${NC}"
-	java -version
+    echo -e "${GREEN}[*] Installing JDK ${NC}"
+    echo -e "${GREEN}[*] Enter your Password then Sit back and Relax ${NC}"
+    sudo apt update -y
+    sudo apt install openjdk-24-jdk openjdk-24-jre -y
+    echo -e "${GREEN}[*] Setting Java Path Variable ${NC}"
+    export JAVA_HOME=/usr/lib/jvm/java-24-openjdk-amd64
+    echo -e "${GREEN}[*] Testing JAVA_HOME Path ${NC}"
+    echo $JAVA_HOME
+    echo -e "${GREEN}[*] Adding JAVA bin directory to the PATH variable ${NC}"
+    export PATH=$PATH:$JAVA_HOME/bin
+    echo -e "${GREEN}[*] Testing PATH Variable ${NC}"
+    echo $PATH
+    echo -e "${GREEN}[*] Testing Java Installation ${NC}"
+    java -version
 }
 
 # Download Android Studio
 DownloadAndroidStudio() {
-	echo -e "${GREEN}[*] Downloading Android Studio ${NC}"
-	wget -c "https://r5---sn-5hnednsz.gvt1.com/edgedl/android/studio/ide-zips/2024.2.1.12/android-studio-2024.2.1.12-linux.tar.gz"
+    echo -e "${GREEN}[*] Downloading Android Studio ${NC}"
+    wget -c "https://r5---sn-5hnednsz.gvt1.com/edgedl/android/studio/ide-zips/2024.2.1.12/android-studio-2024.2.1.12-linux.tar.gz"
 }
 
 # Install Fastboot & ADB Tools
 FastbootADB() {
-	echo -e "${GREEN}[*] Install ADB Tools ${NC}"
-	echo -e "${GREEN}[*] Removing the apt version because of some bugs ${NC}"
-	sudo apt purge adb android-sdk-platform-tools-common adbd android-sdk-platform-tools-common -y
+    echo -e "${GREEN}[*] Install ADB Tools ${NC}"
+    echo -e "${GREEN}[*] Removing the apt version because of some bugs ${NC}"
+    sudo apt purge adb android-sdk-platform-tools-common adbd android-sdk-platform-tools-common -y
     wget -c "https://dl.google.com/android/repository/platform-tools-latest-linux.zip"
     unzip platform-tools-latest-linux.zip -d ~
     for filename in ~/platform-tools/*; do
-      echo -e "${BLUE}[*] Adding $filename to ~/.local/bin/ ${NC}"
-      ln -s $filename ~/.local/bin/
-      chmod +x $filename
+        echo -e "${BLUE}[*] Adding $filename to ~/.local/bin/ ${NC}"
+        ln -s $filename ~/.local/bin/
+        chmod +x $filename
     done
-	rm platform-tools-latest-linux.zip
-	echo -e "${GREEN}[*] Done installing ADB Tools ${NC}"
+    rm platform-tools-latest-linux.zip
+    echo -e "${GREEN}[*] Done installing ADB Tools ${NC}"
 }
 
 # Install Android Studio
 InstallAndroidStudio() {
-	echo -e "${GREEN}[*] Installing Android Studio ${NC}"
-	tar -xzf android-studio-*-linux.tar.gz -C /opt
-	rm android-studio-*-linux.tar.gz 
+    echo -e "${GREEN}[*] Installing Android Studio ${NC}"
+    tar -xzf android-studio-*-linux.tar.gz -C /opt
+    rm android-studio-*-linux.tar.gz 
 
-	mkdir -p "$HOME"/.local/share/applications
-	cat >"$HOME"/.local/share/applications/android-studio.desktop <<-EOF
-		[Desktop Entry]
-		Version=2024.2.1.12
-		Type=Application
-		Name=Android Studio
-		Exec="/opt/android-studio/bin/studio" %f
-		Icon=/opt/android-studio/bin/studio.png
-		Categories=Development;IDE;
-		Terminal=false
-		StartupNotify=true
-		StartupWMClass=android-studio
-	EOF
+    mkdir -p "$HOME"/.local/share/applications
+    cat >"$HOME"/.local/share/applications/android-studio.desktop <<-EOF
+        [Desktop Entry]
+        Version=2024.2.1.12
+        Type=Application
+        Name=Android Studio
+        Exec="/opt/android-studio/bin/studio" %f
+        Icon=/opt/android-studio/bin/studio.png
+        Categories=Development;IDE;
+        Terminal=false
+        StartupNotify=true
+        StartupWMClass=android-studio
+    EOF
 
-	chmod +x "$HOME"/.local/share/applications/android-studio.desktop
-	cp "$HOME"/.local/share/applications/android-studio.desktop "$HOME"/Desktop/android-studio.desktop
+    chmod +x "$HOME"/.local/share/applications/android-studio.desktop
+    cp "$HOME"/.local/share/applications/android-studio.desktop "$HOME"/Desktop/android-studio.desktop
 
-	echo -e "${GREEN}[*] Installing Finished ${NC}"
-	rm -rf android-studio*
-	rm -rf StudioInstaller.sh
+    echo -e "${GREEN}[*] Installing Finished ${NC}"
+    rm -rf android-studio*
+    rm -rf StudioInstaller.sh
 }
 
 JDKInstall
