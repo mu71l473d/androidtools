@@ -14,8 +14,6 @@ ZSHRC=$HOME/.zshrc
 STUDIO_URL=$(curl https://developer.android.com/studio | grep android/studio/ide-zips | grep linux | awk -F '\"' '{print $2}')
 PLATFORMTOOLS_URL="https://dl.google.com/android/repository/platform-tools-latest-linux.zip"
 
-Link
-
 # Install JDK24
 JDKInstall() {
     echo -e "${GREEN}[*] Installing JDK ${NC}"
@@ -36,15 +34,16 @@ JDKInstall() {
 
 # Download Android Studio
 DownloadAndroidStudio() {
-    echo -e "${GREEN}[*] Downloading Android Studio ${NC}"
+    echo -e "${GREEN}[*] Downloading Android Studio from $STUDIO_URL ${NC}"
     wget -c "$STUDIO_URL"
 }
 
 # Install Fastboot & ADB Tools
 FastbootADB() {
     echo -e "${GREEN}[*] Install ADB Tools ${NC}"
-    echo -e "${GREEN}[*] Removing the apt version because of some bugs ${NC}"
+    echo -e "${GREEN}[*] Removing the apt version because of some bugs on kali (not detecting adb devices)${NC}"
     sudo apt purge adb android-sdk-platform-tools-common adbd android-sdk-platform-tools-common -y
+    echo -e "${GREEN}[*] Downloading and installing platform-tools (adb, fastboot, etc.) from $PLATFORMTOOLS_URL ${NC}"
     wget -c "$PLATFORMTOOLS_URL"
     unzip platform-tools-latest-linux.zip -d ~
     for filename in ~/platform-tools/*; do
