@@ -8,6 +8,14 @@ RED='\033[1;31m'
 GREEN='\033[1;32m'
 NC='\033[0m'
 
+ZSHRC=$HOME/.zshrc
+
+# This script grabs the latest version for linux from the android studio website. A static link can also be provided
+STUDIO_URL=$(curl https://developer.android.com/studio | grep android/studio/ide-zips | grep linux | awk -F '\"' '{print $2}')
+PLATFORMTOOLS_URL="https://dl.google.com/android/repository/platform-tools-latest-linux.zip"
+
+Link
+
 # Install JDK24
 JDKInstall() {
     echo -e "${GREEN}[*] Installing JDK ${NC}"
@@ -29,7 +37,7 @@ JDKInstall() {
 # Download Android Studio
 DownloadAndroidStudio() {
     echo -e "${GREEN}[*] Downloading Android Studio ${NC}"
-    wget -c "https://r5---sn-5hnednsz.gvt1.com/edgedl/android/studio/ide-zips/2024.2.1.12/android-studio-2024.2.1.12-linux.tar.gz"
+    wget -c "$STUDIO_URL"
 }
 
 # Install Fastboot & ADB Tools
@@ -37,7 +45,7 @@ FastbootADB() {
     echo -e "${GREEN}[*] Install ADB Tools ${NC}"
     echo -e "${GREEN}[*] Removing the apt version because of some bugs ${NC}"
     sudo apt purge adb android-sdk-platform-tools-common adbd android-sdk-platform-tools-common -y
-    wget -c "https://dl.google.com/android/repository/platform-tools-latest-linux.zip"
+    wget -c "$PLATFORMTOOLS_URL"
     unzip platform-tools-latest-linux.zip -d ~
     for filename in ~/platform-tools/*; do
         echo -e "${BLUE}[*] Adding $filename to ~/.local/bin/ ${NC}"
@@ -66,7 +74,7 @@ InstallAndroidStudio() {
         Terminal=false
         StartupNotify=true
         StartupWMClass=android-studio
-    EOF
+EOF
 
     chmod +x "$HOME"/.local/share/applications/android-studio.desktop
     cp "$HOME"/.local/share/applications/android-studio.desktop "$HOME"/Desktop/android-studio.desktop
@@ -76,7 +84,28 @@ InstallAndroidStudio() {
     rm -rf StudioInstaller.sh
 }
 
+SetEnvironmentVariables() {
+
+    ANDROID_HOME=$(cat $ZSHRC | grep "ANDROID_HOME")
+
+    echo -e "${GREEN}[*] Setting Android Studio environment variables ($ZSHRC)${NC}"
+    if [ -z "$ANDROID_HOME"  ]; then
+        echo -e "\n# Android Studio environment variables" >> $ZSHRC
+        echo "export ANDROID_SDK_ROOT=$HOME/Android/Sdk" >>  $ZSHRC
+        echo "export ANDROID_HOME=$ANDROID_SDK_ROOT" >>  $ZSHRC
+
+        source $HOME/.zshrc
+
+        echo "export PATH=\$PATH:$HOME/Android/Sdk/tools:$HOME/Android/Sdk/platform-tools" >>  $ZSHRC
+        if [ ! -z "$ANDROID_HOME"  ]; then
+            echo -e "${RED}ANDROID_HOME not set. Android Environment failed ?${NC}"
+            exit
+        fi
+    fi
+}
+
 JDKInstall
 FastbootADB
 DownloadAndroidStudio
 InstallAndroidStudio
+SetEnvironmentVariables
