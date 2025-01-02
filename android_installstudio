@@ -92,10 +92,11 @@ SetEnvironmentVariables() {
         echo -e "\n# Android Studio environment variables" >> $ZSHRC
         echo "export ANDROID_SDK_ROOT=$HOME/Android/Sdk" >>  $ZSHRC
         echo "export ANDROID_HOME=$ANDROID_SDK_ROOT" >>  $ZSHRC
-
         source $HOME/.zshrc
 
-        echo "export PATH=\$PATH:$HOME/Android/Sdk/tools:$HOME/Android/Sdk/platform-tools" >>  $ZSHRC
+        echo "export PATH=\$PATH:$HOME/Android/Sdk/tools:$HOME/platform-tools" >>  $ZSHRC
+        source $HOME/.zshrc
+
         if [ ! -z "$ANDROID_HOME"  ]; then
             echo -e "${RED}ANDROID_HOME not set. Android Environment failed ?${NC}"
             exit
