@@ -10,7 +10,7 @@ NC='\033[0m'
 
 ZSHRC=$HOME/.zshrc
 
-# This script grabs the latest version for linux from the android studio website. A static link can also be provided, but this command extracts it dynamically from the android studio website.
+# This script grabs the latest version for linux from the android studio website. 
 STUDIO_URL="$(curl -s https://developer.android.com/studio | grep android/studio/ide-zips | grep linux | awk -F '\"' '{print $2}')"
 PLATFORMTOOLS_URL="https://dl.google.com/android/repository/platform-tools-latest-linux.zip"
 APKTOOL_URL="https://bitbucket.org$(curl -s https://bitbucket.org/iBotPeaches/apktool/downloads/ | grep apktool_ | head -n 1 | awk -F '\"' '{print $2}')"
@@ -33,6 +33,7 @@ JDKInstall() {
     java -version
 }
 
+#Changing the opt ownership so we can download and install tools in it such as mobsf, android studio, etc. 
 ChangeOptOwnership() {
     echo -e "${GREEN}[*] Changing ownership of /opt to $USER ${NC}"
     sudo chown -R $USER:$USER /opt/
@@ -60,18 +61,20 @@ FastbootADB() {
 # Install Android Studio
 InstallAndroidStudio() {
     echo -e "${GREEN}[*] Installing Android Studio ${NC}"
-    tar -xzf android-studio-*-linux.tar.gz -C /opt
+    mkdir -p /opt/android/
+    tar -xzf android-studio-*-linux.tar.gz -C /opt/android/
     rm android-studio-*-linux.tar.gz 
-    VERSION=$(echo $STUDIO_URL | awk -F '/' '{print $8}')
+    STUDIO_VERSION=$(echo $STUDIO_URL | awk -F '/' '{print $8}')
 
+    echo -e "${GREEN}[*] Creating an Android Studio launcher ($ZSHRC)${NC}"
     mkdir -p "$HOME"/.local/share/applications
     cat >"$HOME"/.local/share/applications/android-studio.desktop <<-EOF
         [Desktop Entry]
-        Version=$VERSION
+        Version=$STUDIO_VERSION
         Type=Application
         Name=Android Studio
-        Exec="/opt/android-studio/bin/studio" %f
-        Icon=/opt/android-studio/bin/studio.png
+        Exec="/opt/android/android-studio/bin/studio" %f
+        Icon=/opt/android/android-studio/bin/studio.png
         Categories=Development;IDE;
         Terminal=false
         StartupNotify=true
@@ -81,7 +84,7 @@ EOF
     chmod +x "$HOME"/.local/share/applications/android-studio.desktop
     cp "$HOME"/.local/share/applications/android-studio.desktop "$HOME"/Desktop/android-studio.desktop
 
-    echo -e "${GREEN}[*] Installing Finished ${NC}"
+    echo -e "${GREEN}[*] Installing Finished of Android studio${NC}"
     rm -rf android-studio*
     rm -rf StudioInstaller.sh
 }
@@ -116,6 +119,16 @@ InstallMobsf() {
     cd Mobile-Security-Framework-MobSF/
     bash ./setup.sh
     cd -
+    echo -e "${GREEN}[*] creating an executable in ~/.local/bin/mobsf ${NC}"
+    cat >"$HOME"/.local/bin/mobsf <<-EOF
+    #!/bin/bash
+    #@Author: RB
+
+    #going to attempt to run mobsf from a default location
+    cd /opt/android/Mobile-Security-Framework-MobSF/
+    bash run.sh & 
+    cd -
+EOF
 }
 
 ReinstallApktool() {
@@ -123,18 +136,31 @@ ReinstallApktool() {
     APKTOOL_VERSION=$(echo $APKTOOL_URL | awk -F '/' '{print $7}')
     mkdir -p /opt/android/apktool/
     rm -rf /opt/android/apktool/*
+    
+    echo -e "${GREEN}[*] Downloading apktool ${NC}"
     sudo curl -L -s $APKTOOL_URL -o /opt/android/apktool/$APKTOOL_VERSION
+    
+    echo -e "${GREEN}[*] Reinstalling apktool by creating a patched script in ~/.local/bin/apktool-patched ${NC}"
+    cat >"$HOME"/.local/bin/apktool-patched <<-EOF
+    #!/bin/bash
+
+    #@Author: RB
+
+    VERSION=$(ls /opt/apktool/ | head -n1)
+    java -jar /opt/apktool/apktool/$VERSION $@
+EOF
+    chmod +x ~/.local/bin/apktool-patched 
 }
 
 
 
-#JDKInstall
-#ChangeOptOwnership
-#FastbootADB
-#DownloadAndroidStudio
-#InstallAndroidStudio
-#SetEnvironmentVariables
-#InstallMobsf
+JDKInstall
+ChangeOptOwnership
+FastbootADB
+DownloadAndroidStudio
+InstallAndroidStudio
+SetEnvironmentVariables
+InstallMobsf
 ReinstallApktool
 
 echo -e "${GREEN}[*] DONE WITH INSTALLING! ${NC}"
