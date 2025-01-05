@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #@Author: RB
-# Shell Script for Installing JDK, Android Studio & Creating Desktop Icon
+# Shell Script for Installing JDK, Android Studio & Creating Desktop Icon & more.
 
 BLUE='\033[1;36m'
 RED='\033[1;31m'
@@ -10,9 +10,10 @@ NC='\033[0m'
 
 ZSHRC=$HOME/.zshrc
 
-# This script grabs the latest version for linux from the android studio website. A static link can also be provided
-STUDIO_URL=$(curl https://developer.android.com/studio | grep android/studio/ide-zips | grep linux | awk -F '\"' '{print $2}')
+# This script grabs the latest version for linux from the android studio website. A static link can also be provided, but this command extracts it dynamically from the android studio website.
+STUDIO_URL="$(curl -s https://developer.android.com/studio | grep android/studio/ide-zips | grep linux | awk -F '\"' '{print $2}')"
 PLATFORMTOOLS_URL="https://dl.google.com/android/repository/platform-tools-latest-linux.zip"
+APKTOOL_URL="https://bitbucket.org$(curl -s https://bitbucket.org/iBotPeaches/apktool/downloads/ | grep apktool_ | head -n 1 | awk -F '\"' '{print $2}')"
 
 # Install JDK24
 JDKInstall() {
@@ -32,6 +33,11 @@ JDKInstall() {
     java -version
 }
 
+ChangeOptOwnership() {
+    echo -e "${GREEN}[*] Changing ownership of /opt to $USER ${NC}"
+    sudo chown -R $USER:$USER /opt/
+}
+
 # Download Android Studio
 DownloadAndroidStudio() {
     echo -e "${GREEN}[*] Downloading Android Studio from $STUDIO_URL ${NC}"
@@ -45,12 +51,8 @@ FastbootADB() {
     sudo apt purge adb android-sdk-platform-tools-common adbd android-sdk-platform-tools-common -y
     echo -e "${GREEN}[*] Downloading and installing platform-tools (adb, fastboot, etc.) from $PLATFORMTOOLS_URL ${NC}"
     wget -c "$PLATFORMTOOLS_URL"
-    unzip platform-tools-latest-linux.zip -d ~
-    for filename in ~/platform-tools/*; do
-        echo -e "${BLUE}[*] Adding $filename to ~/.local/bin/ ${NC}"
-        ln -s $filename ~/.local/bin/
-        chmod +x $filename
-    done
+    mkdir ~/Android/Sdk/platform-tools/
+    unzip platform-tools-latest-linux.zip -d ~/Android/Sdk/
     rm platform-tools-latest-linux.zip
     echo -e "${GREEN}[*] Done installing ADB Tools ${NC}"
 }
@@ -60,11 +62,12 @@ InstallAndroidStudio() {
     echo -e "${GREEN}[*] Installing Android Studio ${NC}"
     tar -xzf android-studio-*-linux.tar.gz -C /opt
     rm android-studio-*-linux.tar.gz 
+    VERSION=$(echo $STUDIO_URL | awk -F '/' '{print $8}')
 
     mkdir -p "$HOME"/.local/share/applications
     cat >"$HOME"/.local/share/applications/android-studio.desktop <<-EOF
         [Desktop Entry]
-        Version=2024.2.1.12
+        Version=$VERSION
         Type=Application
         Name=Android Studio
         Exec="/opt/android-studio/bin/studio" %f
@@ -84,6 +87,7 @@ EOF
 }
 
 SetEnvironmentVariables() {
+    echo -e "${GREEN}[*] Setting the environment variables ${NC}"
 
     ANDROID_HOME=$(cat $ZSHRC | grep "ANDROID_HOME")
 
@@ -94,7 +98,7 @@ SetEnvironmentVariables() {
         echo "export ANDROID_HOME=$ANDROID_SDK_ROOT" >>  $ZSHRC
         source $HOME/.zshrc
 
-        echo "export PATH=\$PATH:$HOME/Android/Sdk/tools:$HOME/platform-tools" >>  $ZSHRC
+        echo "export PATH=\$PATH:\$HOME/Android/Sdk/tools:\$HOME/Android/Sdk/platform-tools" >>  $ZSHRC
         source $HOME/.zshrc
 
         if [ ! -z "$ANDROID_HOME"  ]; then
@@ -104,8 +108,33 @@ SetEnvironmentVariables() {
     fi
 }
 
-JDKInstall
-FastbootADB
-DownloadAndroidStudio
-InstallAndroidStudio
-SetEnvironmentVariables
+InstallMobsf() {
+    echo -e "${GREEN}[*] Installing mobsf ${NC}"
+    mkdir /opt/android/
+    cd /opt/android/
+    git clone https://github.com/MobSF/Mobile-Security-Framework-MobSF
+    cd Mobile-Security-Framework-MobSF/
+    bash ./setup.sh
+    cd -
+}
+
+ReinstallApktool() {
+    echo -e "${GREEN}[*] Reinstalling apktool ${NC}"
+    APKTOOL_VERSION=$(echo $APKTOOL_URL | awk -F '/' '{print $7}')
+    mkdir -p /opt/android/apktool/
+    rm -rf /opt/android/apktool/*
+    sudo curl -L -s $APKTOOL_URL -o /opt/android/apktool/$APKTOOL_VERSION
+}
+
+
+
+#JDKInstall
+#ChangeOptOwnership
+#FastbootADB
+#DownloadAndroidStudio
+#InstallAndroidStudio
+#SetEnvironmentVariables
+#InstallMobsf
+ReinstallApktool
+
+echo -e "${GREEN}[*] DONE WITH INSTALLING! ${NC}"
