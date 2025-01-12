@@ -89,6 +89,7 @@ EOF
     rm -rf StudioInstaller.sh
 }
 
+#Setting the environment variables
 SetEnvironmentVariables() {
     echo -e "${GREEN}[*] Setting the environment variables ${NC}"
 
@@ -111,6 +112,7 @@ SetEnvironmentVariables() {
     fi
 }
 
+#installing the Mobile Security Framework
 InstallMobsf() {
     echo -e "${GREEN}[*] Installing mobsf ${NC}"
     mkdir /opt/android/
@@ -131,6 +133,7 @@ InstallMobsf() {
 EOF
 }
 
+#reinstall apktool with a better version
 ReinstallApktool() {
     echo -e "${GREEN}[*] Reinstalling apktool ${NC}"
     APKTOOL_VERSION=$(echo $APKTOOL_URL | awk -F '/' '{print $7}')
@@ -139,17 +142,6 @@ ReinstallApktool() {
     
     echo -e "${GREEN}[*] Downloading apktool ${NC}"
     sudo curl -L -s $APKTOOL_URL -o /opt/android/apktool/$APKTOOL_VERSION
-    
-    echo -e "${GREEN}[*] Reinstalling apktool by creating a patched script in ~/.local/bin/apktool-patched ${NC}"
-    cat >"$HOME"/.local/bin/apktool-patched <<-EOF
-    #!/bin/bash
-
-    #@Author: RB
-
-    VERSION=$(ls /opt/apktool/ | head -n1)
-    java -jar /opt/apktool/apktool/$VERSION $@
-EOF
-    chmod +x ~/.local/bin/apktool-patched 
 }
 
 
