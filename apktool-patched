@@ -1,4 +1,0 @@
-#!/bin/bash
-
-VERSION=$(ls /opt/apktool/ | head -n1)
-java -jar /opt/apktool/apktool/$VERSION $@
