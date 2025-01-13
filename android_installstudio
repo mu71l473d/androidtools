@@ -136,12 +136,39 @@ EOF
 #reinstall apktool with a better version
 ReinstallApktool() {
     echo -e "${GREEN}[*] Reinstalling apktool ${NC}"
+    sudo apt purge apktool -y
     APKTOOL_VERSION=$(echo $APKTOOL_URL | awk -F '/' '{print $7}')
     mkdir -p /opt/android/apktool/
     rm -rf /opt/android/apktool/*
     
     echo -e "${GREEN}[*] Downloading apktool ${NC}"
     sudo curl -L -s $APKTOOL_URL -o /opt/android/apktool/$APKTOOL_VERSION
+}
+
+#install scrcpy (screencopy)
+InstallScrcpy() {
+    echo -e "${GREEN}[*] Installing scrcpy ${NC}"
+    # for Debian/Ubuntu, scrcpy from apt is outdated, that's why this script installs it manually
+    sudo apt install ffmpeg libsdl2-2.0-0 wget \
+                 gcc git pkg-config meson ninja-build libsdl2-dev \
+                 libavcodec-dev libavdevice-dev libavformat-dev libavutil-dev \
+                 libswresample-dev libusb-1.0-0 libusb-1.0-0-dev
+
+    mkdir /opt/android/
+    cd /opt/android/
+    git clone https://github.com/Genymobile/scrcpy
+    cd scrcpy
+    ./install_release.sh
+    cd -
+
+}
+
+#install Frida
+InstallFrida() {
+    echo -e "${GREEN}[*] Installing Frida ${NC}"
+    sudo apt install pipx -y
+    #installs frida in a virtualenv by default
+    pipx install frida-tools
 }
 
 
@@ -154,5 +181,7 @@ InstallAndroidStudio
 SetEnvironmentVariables
 InstallMobsf
 ReinstallApktool
+InstallScrcpy
+InstallFrida
 
 echo -e "${GREEN}[*] DONE WITH INSTALLING! ${NC}"
