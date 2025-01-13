@@ -171,6 +171,12 @@ InstallFrida() {
     pipx install frida-tools
 }
 
+InstallDrozer() {
+    echo -e "${GREEN}[*] Installing drozer ${NC}"
+    sudo apt install pipx -y
+    pipx install drozer
+}
+
 
 
 JDKInstall
