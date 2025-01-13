@@ -189,5 +189,6 @@ InstallMobsf
 ReinstallApktool
 InstallScrcpy
 InstallFrida
+InstallDrozer
 
 echo -e "${GREEN}[*] DONE WITH INSTALLING! ${NC}"
