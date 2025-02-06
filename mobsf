@@ -4,5 +4,6 @@
 
 #going to attempt to run mobsf from a default location
 cd /opt/android/Mobile-Security-Framework-MobSF/
+source bin/activate
 bash run.sh & 
 cd -

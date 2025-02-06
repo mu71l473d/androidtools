@@ -19,8 +19,8 @@ if [[ $(ps aux | grep mobsf) ]];
 then
       echo -e "${RED}[*] Mobsf is not running, you should consider starting it.${NC}"
       echo -e "${GREEN}[*] Trying $(which mobsf) to start it${NC}"
-      bash "$(which mobsf)"
-      sleep 15;
+      #bash "$(which mobsf)"
+      #sleep 15;
 else
       echo -e "${GREEN}[*] Mobsf is running${NC}"
 

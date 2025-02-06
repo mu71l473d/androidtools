@@ -52,7 +52,7 @@ FastbootADB() {
     sudo apt purge adb android-sdk-platform-tools-common adbd android-sdk-platform-tools-common -y
     echo -e "${GREEN}[*] Downloading and installing platform-tools (adb, fastboot, etc.) from $PLATFORMTOOLS_URL ${NC}"
     wget -c "$PLATFORMTOOLS_URL"
-    mkdir ~/Android/Sdk/platform-tools/
+    mkdir -p ~/Android/Sdk/platform-tools/
     unzip platform-tools-latest-linux.zip -d ~/Android/Sdk/
     rm platform-tools-latest-linux.zip
     echo -e "${GREEN}[*] Done installing ADB Tools ${NC}"
@@ -89,7 +89,6 @@ EOF
     rm -rf StudioInstaller.sh
 }
 
-#Setting the environment variables
 SetEnvironmentVariables() {
     echo -e "${GREEN}[*] Setting the environment variables ${NC}"
 
@@ -102,7 +101,7 @@ SetEnvironmentVariables() {
         echo "export ANDROID_HOME=$ANDROID_SDK_ROOT" >>  $ZSHRC
         source $HOME/.zshrc
 
-        echo "export PATH=\$PATH:\$HOME/Android/Sdk/tools:\$HOME/Android/Sdk/platform-tools" >>  $ZSHRC
+        echo "export PATH=\$PATH:\$HOME/Android/Sdk/tools/:\$HOME/Android/Sdk/platform-tools/:\$HOME/Android/Sdk/emulator/" >>  $ZSHRC
         source $HOME/.zshrc
 
         if [ ! -z "$ANDROID_HOME"  ]; then
@@ -112,13 +111,13 @@ SetEnvironmentVariables() {
     fi
 }
 
-#installing the Mobile Security Framework
 InstallMobsf() {
     echo -e "${GREEN}[*] Installing mobsf ${NC}"
     mkdir /opt/android/
     cd /opt/android/
     git clone https://github.com/MobSF/Mobile-Security-Framework-MobSF
     cd Mobile-Security-Framework-MobSF/
+    git pull
     bash ./setup.sh
     cd -
     echo -e "${GREEN}[*] creating an executable in ~/.local/bin/mobsf ${NC}"
@@ -133,62 +132,34 @@ InstallMobsf() {
 EOF
 }
 
-#reinstall apktool with a better version
 ReinstallApktool() {
     echo -e "${GREEN}[*] Reinstalling apktool ${NC}"
-    sudo apt purge apktool -y
     APKTOOL_VERSION=$(echo $APKTOOL_URL | awk -F '/' '{print $7}')
     mkdir -p /opt/android/apktool/
     rm -rf /opt/android/apktool/*
     
     echo -e "${GREEN}[*] Downloading apktool ${NC}"
     sudo curl -L -s $APKTOOL_URL -o /opt/android/apktool/$APKTOOL_VERSION
+    
+    echo -e "${GREEN}[*] Reinstalling apktool by creating a patched script in ~/.local/bin/apktool-patched ${NC}"
+    cat >"$HOME"/.local/bin/apktool-patched <<-EOF
+#!/bin/bash
+#@Author: RB
+
+java -jar /opt/android/apktool/$APKTOOL_VERSION $@
+
+EOF
+    chmod +x ~/.local/bin/apktool-patched 
+    cat ~/.local/bin/apktool-patched
 }
 
-#install scrcpy (screencopy)
-InstallScrcpy() {
-    echo -e "${GREEN}[*] Installing scrcpy ${NC}"
-    # for Debian/Ubuntu, scrcpy from apt is outdated, that's why this script installs it manually
-    sudo apt install ffmpeg libsdl2-2.0-0 wget \
-                 gcc git pkg-config meson ninja-build libsdl2-dev \
-                 libavcodec-dev libavdevice-dev libavformat-dev libavutil-dev \
-                 libswresample-dev libusb-1.0-0 libusb-1.0-0-dev
-
-    mkdir /opt/android/
-    cd /opt/android/
-    git clone https://github.com/Genymobile/scrcpy
-    cd scrcpy
-    ./install_release.sh
-    cd -
-
-}
-
-#install Frida
-InstallFrida() {
-    echo -e "${GREEN}[*] Installing Frida ${NC}"
-    sudo apt install pipx -y
-    #installs frida in a virtualenv by default
-    pipx install frida-tools
-}
-
-InstallDrozer() {
-    echo -e "${GREEN}[*] Installing drozer ${NC}"
-    sudo apt install pipx -y
-    pipx install drozer
-}
-
-
-
-JDKInstall
-ChangeOptOwnership
+#JDKInstall
+#ChangeOptOwnership
 FastbootADB
-DownloadAndroidStudio
-InstallAndroidStudio
-SetEnvironmentVariables
-InstallMobsf
+#DownloadAndroidStudio
+#InstallAndroidStudio
+#SetEnvironmentVariables
+#InstallMobsf
 ReinstallApktool
-InstallScrcpy
-InstallFrida
-InstallDrozer
 
 echo -e "${GREEN}[*] DONE WITH INSTALLING! ${NC}"

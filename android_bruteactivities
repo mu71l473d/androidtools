@@ -1,0 +1,34 @@
+#!/bin/bash
+
+#A simple activity getter which will bruteforce what activities are available to the tester. 
+#@Author: RB
+#@version 0.1
+
+
+BLUE='\033[1;36m'
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+NC='\033[0m'
+
+set -e
+set -o pipefail
+
+if [ -z "$1" ]; then
+    echo -e "${GREEN}You must pass a package or name to search to this function! ${NC}"
+    echo "Ex.: android_bruteactivities \"com.kiwa.insecureshop\" or"
+    echo "Ex.: android_bruteactivities \"insecureshop\""
+fi
+if [ -z "$(adb shell pm list packages | grep -i $1)" ]; then
+    echo "no correct packages could be found with this name or term"
+fi
+
+echo -e "${GREEN}[*] The device the app is extracted from is: ${NC}"      
+adb devices | sed -n '2p'
+get_package="$(adb shell pm list packages | grep -i $1 | awk -F':' '{print $2}')"
+
+echo -e "${GREEN}[*] Starting the bruteforcing of Activities and sleeping inbetween. ${NC}"  
+for activity in $(adb shell dumpsys package | grep -i $get_package | grep Activity | awk -F ' ' '{print $2}')
+do
+    adb shell am start -n $activity
+    sleep 5
+done    

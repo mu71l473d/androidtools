@@ -1,0 +1,41 @@
+#!/bin/bash
+
+#A simple adb logcat script, which pulls logs for a specific package name 
+#@Author: RB
+#@version 0.1
+
+
+BLUE='\033[1;36m'
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+NC='\033[0m'
+
+set -e
+set -o pipefail
+
+if [ -z "$1" ]; then
+    echo -e "${GREEN}You must pass a package or name to search to this function! ${NC}"
+    echo "Ex.: android_logappdata \"com.kiwa.insecureshop\" or"
+    echo "Ex.: android_logappdata \"insecureshop\""
+fi
+if [ -z "$(adb shell pm list packages | grep -i $1)" ]; then
+    echo "no correct packages could be found with this name or term"
+fi
+
+echo -e "${GREEN}[*] The device the app is extracted from is: ${NC}"      
+adb devices | sed -n '2p'
+get_package="$(adb shell pm list packages | grep -i $1 | awk -F':' '{print $2}')"
+
+echo "$(adb shell pidof -s $get_package)"
+if [ -z "$(adb shell pidof -s $get_package)" ];
+then
+    echo -e "${GREEN}[*] Found no PID, so trying to start the MainActivity: ${NC}"
+    adb shell am start -n $get_package/$get_package.MainActivity
+    echo -e "${GREEN}[*] sleeping, so the MainActivity can start: ${NC}"
+    sleep 3
+    adb logcat --pid="$(adb shell pidof -s $get_package)" | tee -a adb-logcat-$get_package.log
+else
+    echo -e "${GREEN}[*] Using package: $get_package for adb logcat, and logging it to adb-logcat-$get_package.log ${NC}"
+    adb logcat --pid="$(adb shell pidof -s $get_package)" | tee -a adb-logcat-$get_package.log
+fi
+
