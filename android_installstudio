@@ -172,6 +172,15 @@ InstallScrcpy() {
 	cd -
 }
 
+InstallRootAVD() {
+    cd /opt/android/
+    git clone https://gitlab.com/newbit/rootAVD
+    cd rootAVD
+    ./rootAVD.sh ListAllAVDs
+    cd - 
+
+}
+
 JDKInstall
 ChangeOptOwnership
 FastbootADB
@@ -181,5 +190,6 @@ SetEnvironmentVariables
 InstallMobsf
 ReinstallApktool
 InstallScrcpy
+InstallRootAVD
 
 echo -e "${GREEN}[*] DONE WITH INSTALLING! ${NC}"
