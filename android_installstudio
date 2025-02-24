@@ -20,9 +20,9 @@ JDKInstall() {
     echo -e "${GREEN}[*] Installing JDK ${NC}"
     echo -e "${GREEN}[*] Enter your Password then Sit back and Relax ${NC}"
     sudo apt update -y
-    sudo apt install openjdk-24-jdk openjdk-24-jre -y
+    sudo apt install openjdk-21-jdk openjdk-21-jre -y
     echo -e "${GREEN}[*] Setting Java Path Variable ${NC}"
-    export JAVA_HOME=/usr/lib/jvm/java-24-openjdk-amd64
+    export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
     echo -e "${GREEN}[*] Testing JAVA_HOME Path ${NC}"
     echo $JAVA_HOME
     echo -e "${GREEN}[*] Adding JAVA bin directory to the PATH variable ${NC}"
@@ -89,6 +89,7 @@ EOF
     rm -rf StudioInstaller.sh
 }
 
+#Setting the environment variables
 SetEnvironmentVariables() {
     echo -e "${GREEN}[*] Setting the environment variables ${NC}"
 
@@ -101,7 +102,7 @@ SetEnvironmentVariables() {
         echo "export ANDROID_HOME=$ANDROID_SDK_ROOT" >>  $ZSHRC
         source $HOME/.zshrc
 
-        echo "export PATH=\$PATH:\$HOME/Android/Sdk/tools/:\$HOME/Android/Sdk/platform-tools/:\$HOME/Android/Sdk/emulator/" >>  $ZSHRC
+        echo "export PATH=\$PATH:\$HOME/Android/Sdk/tools:\$HOME/Android/Sdk/platform-tools" >>  $ZSHRC
         source $HOME/.zshrc
 
         if [ ! -z "$ANDROID_HOME"  ]; then
@@ -111,6 +112,7 @@ SetEnvironmentVariables() {
     fi
 }
 
+#installing the Mobile Security Framework
 InstallMobsf() {
     echo -e "${GREEN}[*] Installing mobsf ${NC}"
     mkdir /opt/android/
@@ -128,10 +130,11 @@ InstallMobsf() {
     #going to attempt to run mobsf from a default location
     cd /opt/android/Mobile-Security-Framework-MobSF/
     bash run.sh & 
-    cd -
+    
 EOF
 }
 
+#reinstall apktool with a better version
 ReinstallApktool() {
     echo -e "${GREEN}[*] Reinstalling apktool ${NC}"
     APKTOOL_VERSION=$(echo $APKTOOL_URL | awk -F '/' '{print $7}')
@@ -153,13 +156,30 @@ EOF
     cat ~/.local/bin/apktool-patched
 }
 
-#JDKInstall
-#ChangeOptOwnership
+InstallScrcpy() {
+	echo -e "${GREEN}[*] Installing scrcpy${NC}"
+	cd /opt/android/
+	git clone https://github.com/Genymobile/scrcpy 
+	cd scrcpy
+	sudo apt update
+	sudo apt install ffmpeg libsdl2-2.0-0 wget \
+                 gcc git pkg-config meson ninja-build libsdl2-dev \
+                 libavcodec-dev libavdevice-dev libavformat-dev libavutil-dev \
+                 libswresample-dev libusb-1.0-0 libusb-1.0-0-dev
+        chmod +x install_release.sh         
+        ./install_release.sh          
+
+	cd -
+}
+
+JDKInstall
+ChangeOptOwnership
 FastbootADB
-#DownloadAndroidStudio
-#InstallAndroidStudio
-#SetEnvironmentVariables
-#InstallMobsf
+DownloadAndroidStudio
+InstallAndroidStudio
+SetEnvironmentVariables
+InstallMobsf
 ReinstallApktool
+InstallScrcpy
 
 echo -e "${GREEN}[*] DONE WITH INSTALLING! ${NC}"
