@@ -95,13 +95,12 @@ SetEnvironmentVariables() {
 
     ANDROID_HOME=$(cat $ZSHRC | grep "ANDROID_HOME")
 
-    echo -e "${GREEN}[*] Setting Android Studio environment variables and paths ($ZSHRC)${NC}"
+    echo -e "${GREEN}[*] Setting Android Studio environment variables ($ZSHRC)${NC}"
     if [ -z "$ANDROID_HOME"  ]; then
-        echo -e "\n# Android Studio environment variables" >> $ZSHRC    
-        echo "export ANDROID_USER_HOME=~/.android/" >>  $ZSHRC
-        echo "export ANDROID_HOME=~/Android/Sdk/" >>  $ZSHRC
-        echo "export ANDROID_EMULATOR_HOME=~/Android/Sdk/emulator/" >>  $ZSHRC
-        echo "export ANDROID_AVD_HOME=~/.config/.android/avd/" >>  $ZSHRC
+        echo -e "\n# Android Studio environment variables" >> $ZSHRC
+        echo "export ANDROID_SDK_ROOT=$HOME/Android/Sdk" >>  $ZSHRC
+        echo "export ANDROID_HOME=$ANDROID_SDK_ROOT" >>  $ZSHRC
+        source $HOME/.zshrc
 
         echo "export PATH=\$PATH:\$HOME/Android/Sdk/tools:\$HOME/Android/Sdk/platform-tools" >>  $ZSHRC
         source $HOME/.zshrc
@@ -167,8 +166,8 @@ InstallScrcpy() {
                  gcc git pkg-config meson ninja-build libsdl2-dev \
                  libavcodec-dev libavdevice-dev libavformat-dev libavutil-dev \
                  libswresample-dev libusb-1.0-0 libusb-1.0-0-dev
-    chmod +x install_release.sh         
-    ./install_release.sh          
+        chmod +x install_release.sh         
+        ./install_release.sh          
 
 	cd -
 }
@@ -177,7 +176,6 @@ InstallRootAVD() {
     cd /opt/android/
     git clone https://gitlab.com/newbit/rootAVD
     cd rootAVD
-    ln -s /opt/android/rootAVD/rootAVD.sh ~/.local/bin/rootAVD.sh
     ./rootAVD.sh ListAllAVDs
     cd - 
 
