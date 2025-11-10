@@ -11,9 +11,6 @@ RED='\033[1;31m'
 GREEN='\033[1;32m'
 NC='\033[0m'
 
-set -e
-set -o pipefail
-
 if [ -z "$1" ]; then
     echo -e "${GREEN}You must pass a package or name to search to this function! ${NC}"
     echo "Ex.: android_pull_apk \"com.kiwa.insecureshop\" or"

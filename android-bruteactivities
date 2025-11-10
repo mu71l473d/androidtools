@@ -26,9 +26,31 @@ echo -e "${GREEN}[*] The device the app is extracted from is: ${NC}"
 adb devices | sed -n '2p'
 get_package="$(adb shell pm list packages | grep -i $1 | awk -F':' '{print $2}')"
 
+echo -e "${GREEN}[*] Found package is $get_package ${NC}" 
+
+cd media
 echo -e "${GREEN}[*] Starting the bruteforcing of Activities and sleeping inbetween. ${NC}"  
 for activity in $(adb shell dumpsys package | grep -i $get_package | grep Activity | awk -F ' ' '{print $2}')
 do
-    adb shell am start -n $activity
-    sleep 5
-done    
+    echo -e "${GREEN}[*] Starting $activity ${NC}"  
+    adb shell "su -c 'am start -n $activity'"
+    sleep 3
+    adb shell screencap -p > $(mktemp screenshot-XXXX.png)
+    sleep 2
+done  
+
+#cat AndroidManifest.xml | grep "<activity" | awk -F '"' '{print $2}' | grep -v "@" > activities.txt
+#sed 's/$get_activity/$get_activity\//g' activities.txt > activitieslist.txt
+
+#scrcpy -w &
+echo $(pwd)
+for activity in $(cat ../activitieslist.txt)
+do
+    echo -e "${GREEN}[*] Starting $activity ${NC}"
+    adb shell "su -c 'am start -n $activity'"
+    sleep 3
+    adb shell screencap -p > $(mktemp screenshot-XXXX.png)
+    sleep 2
+done
+cd ..
+
