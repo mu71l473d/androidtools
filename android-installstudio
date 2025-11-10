@@ -187,9 +187,9 @@ FastbootADB
 DownloadAndroidStudio
 InstallAndroidStudio
 SetEnvironmentVariables
-#InstallMobsf
+InstallMobsf
 ReinstallApktool
-#InstallScrcpy
+InstallScrcpy
 InstallRootAVD
 
 echo -e "${GREEN}[*] DONE WITH INSTALLING! ${NC}"
