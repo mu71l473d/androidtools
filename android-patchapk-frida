@@ -1,8 +1,9 @@
 #!/bin/bash
 
-#A simple script which will patch an app with frida 
+#A simple script which will patch an app with frida
+# WIP
 #@Author: RB
-#@version 0.1
+#@version 0.2
 
 
 BLUE='\033[1;36m'
@@ -13,55 +14,242 @@ NC='\033[0m'
 set -e
 set -o pipefail
 
-# --- Usage ---
-# ./android-patchapk-frida <apk_file> <architecture>
-# Example: ./android-patchapk-frida app.apk arm64
+echo -e "${RED} This script is a WIP. Bugs do exist. ${NC}" 
 
-APK="$1"
-ARCH="$2"
+# -------- DEFAULTS --------
+TARGET_DIR=""
+SINGLE_APK=""
+ARCH_OVERRIDE="auto"
+THREADS=4
 
-if [[ -z "$APK" || -z "$ARCH" ]]; then
-    echo -e "${GREEN}[*] Usage: $0 <apk_file> <architecture> ${NC}" 
-    echo -e "${GREEN}[*] Example architectures: arm, arm64, x86, x86_64 ${NC}" 
+LOG_FILE="patch_apk.log"
+FAILED_DIR=""
+OUTPUT_DIR=""
+
+SUCCESS_COUNT=0
+FAIL_COUNT=0
+
+# -------- USAGE --------
+usage() {
+    echo -e "${GREEN}Usage:"
+    echo "  $0 -d <apk_folder> [-a arch] [-t threads]"
+    echo "  $0 -f <apk_file>   [-a arch]"
+    echo ""
+    echo "Options:"
+    echo "  -d   Directory containing APKs"
+    echo "  -f   Single APK file"
+    echo "  -a   Architecture (arm, arm64, x86, x86_64, auto)"
+    echo "  -t   Threads (default: 4, folder mode only) ${NC}" 
+    exit 1
+}
+
+# -------- ARG PARSING --------
+while getopts "d:f:a:t:" opt; do
+    case $opt in
+        d) TARGET_DIR="$OPTARG" ;;
+        f) SINGLE_APK="$OPTARG" ;;
+        a) ARCH_OVERRIDE="$OPTARG" ;;
+        t) THREADS="$OPTARG" ;;
+        *) usage ;;
+    esac
+done
+
+# -------- VALIDATION --------
+if [[ -n "$TARGET_DIR" && -n "$SINGLE_APK" ]]; then
+    echo -e "${RED}[*] Error: Use either -d or -f, not both ${NC}" 
     exit 1
 fi
 
-if [[ ! -f "$APK" ]]; then
+if [[ -z "$TARGET_DIR" && -z "$SINGLE_APK" ]]; then
+    usage
+fi
+
+if [[ -n "$TARGET_DIR" && ! -d "$TARGET_DIR" ]]; then
+    echo -e "${RED}[*] Error: Directory not found ${NC}" 
+    exit 1
+fi
+
+if [[ -n "$SINGLE_APK" && ! -f "$SINGLE_APK" ]]; then
     echo -e "${RED}[*] Error: APK file not found ${NC}" 
     exit 1
 fi
 
-# --- Extract base filename ---
-BASENAME=$(basename "$APK" .apk)
+# Set dirs dynamically
+BASE_DIR="${TARGET_DIR:-$(dirname "$SINGLE_APK")}"
+FAILED_DIR="${BASE_DIR}/failed"
+OUTPUT_DIR="${BASE_DIR}/patched"
 
-# --- Get Frida version ---
-FRIDA_VERSION=$(frida --version 2>/dev/null || true)
+mkdir -p "$FAILED_DIR" "$OUTPUT_DIR"
 
-if [[ -z "$FRIDA_VERSION" ]]; then
-    echo -e "${RED}[*] Warning: Could not detect Frida version, defaulting to unknown ${NC}" 
-    FRIDA_VERSION="unknown"
+# -------- LOGGING --------
+log() {
+    local level="$1"
+    local msg="$2"
+    local timestamp
+    timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+
+    echo -e "${GREEN}[$timestamp] [$level] $msg ${NC}" | tee -a "$LOG_FILE"
+}
+
+# -------- DEP CHECK --------
+for cmd in objection frida apksigner zipalign aapt; do
+    if ! command -v "$cmd" &>/dev/null; then
+        echo -e "${RED}[*] Error: missing dependency '$cmd' ${NC}" 
+        exit 1
+    fi
+done
+
+# -------- FRIDA VERSION --------
+FRIDA_VERSION=$(frida --version 2>/dev/null || echo "unknown")
+log "INFO" "Frida version: $FRIDA_VERSION"
+
+# -------- ARCH DETECTION --------
+detect_arch() {
+    local apk="$1"
+
+    if [[ "$ARCH_OVERRIDE" != "auto" ]]; then
+        echo "$ARCH_OVERRIDE"
+        return
+    fi
+
+    local arch
+    arch=$(aapt dump badging "$apk" | grep native-code | head -n1)
+
+    if [[ "$arch" == *"arm64-v8a"* ]]; then
+        echo "arm64"
+    elif [[ "$arch" == *"armeabi-v7a"* ]]; then
+        echo "arm"
+    elif [[ "$arch" == *"x86_64"* ]]; then
+        echo "x86_64"
+    elif [[ "$arch" == *"x86"* ]]; then
+        echo "x86"
+    else
+        echo "arm64"
+    fi
+}
+
+# -------- SIGNING --------
+sign_apk() {
+    local apk="$1"
+	echo -e "${GREEN}[*] Running Zipalign ${NC}" 
+    zipalign -f 4 "$apk" "${apk%.apk}-aligned.apk"
+	
+	KEYSTORE="$HOME/.android/debug.keystore"
+
+	# Ensure keystore exists
+	if [[ ! -f "$KEYSTORE" ]]; then
+		echo -e "${RED}[INFO] Debug keystore not found. Generating one... ${NC}" 
+
+		mkdir -p "$(dirname "$KEYSTORE")"
+
+		keytool -genkeypair \
+			-v \
+			-keystore "$KEYSTORE" \
+			-storepass android \
+			-alias androiddebugkey \
+			-keypass android \
+			-keyalg RSA \
+			-keysize 2048 \
+			-validity 10000 \
+			-dname "CN=Android Debug,O=Android,C=US"
+
+		echo -e "${GREEN}[INFO] Debug keystore generated at $KEYSTORE ${NC}" 
+	else
+		echo -e "${GREEN}[INFO] Using existing debug keystore ${NC}" 
+	fi
+
+	# Sign APK
+	
+	echo -e "${GREEN}[*] Running apksigner ${NC}" 
+    apksigner sign \
+        --ks ~/.android/debug.keystore \
+        --ks-pass pass:android \
+        --key-pass pass:android \
+        --out "$apk" \
+        "${apk%.apk}-aligned.apk"
+
+    rm -f "${apk%.apk}-aligned.apk"
+}
+
+# -------- PROCESS --------
+process_apk() {
+    local APK="$1"
+    local BASENAME
+    BASENAME=$(basename "$APK" .apk)
+
+    log "INFO" "Processing $APK"
+
+    ARCH=$(detect_arch "$APK")
+    log "INFO" "Detected architecture: $ARCH"
+
+    if ! objection patchapk --source "$APK" --architecture "$ARCH" >>"$LOG_FILE" 2>&1; then
+        log "ERROR" "Patch failed: $APK"
+        mv "$APK" "$FAILED_DIR/"
+        echo -e "${RED}FAIL ${NC}" 
+        return
+    fi
+
+    PATCHED="${BASENAME}.objection.apk"
+
+    if [[ ! -f "$PATCHED" ]]; then
+        log "ERROR" "Patched file missing: $APK"
+        mv "$APK" "$FAILED_DIR/"
+        echo -e "${RED}FAIL ${NC}" 
+        return
+    fi
+
+    NEW_NAME="${OUTPUT_DIR}/${BASENAME}-${ARCH}-${FRIDA_VERSION}.apk"
+    mv "$PATCHED" "$NEW_NAME"
+
+    log "INFO" "Signing $NEW_NAME"
+    if ! sign_apk "$NEW_NAME" >>"$LOG_FILE" 2>&1; then
+        log "ERROR" "Signing failed: $NEW_NAME"
+        mv "$APK" "$FAILED_DIR/"
+        echo -e "${RED}FAIL ${NC}" 
+        return
+    fi
+
+    log "INFO" "Success: $NEW_NAME"
+    SUCCESS"
+}
+
+export -f log detect_arch sign_apk process_apk
+export LOG_FILE FAILED_DIR OUTPUT_DIR FRIDA_VERSION ARCH_OVERRIDE
+
+# -------- EXECUTION --------
+if [[ -n "$SINGLE_APK" ]]; then
+    log "INFO" "Running in SINGLE APK mode"
+    RESULT=$(process_apk "$SINGLE_APK")
+
+    if [[ "$RESULT" == "SUCCESS" ]]; then
+        SUCCESS_COUNT=1
+    else
+        FAIL_COUNT=1
+    fi
+
+else
+    log "INFO" "Running in FOLDER mode with $THREADS threads"
+
+    shopt -s nullglob
+    APK_FILES=("$TARGET_DIR"/*.apk)
+
+    if [[ ${#APK_FILES[@]} -eq 0 ]]; then
+        log "WARN" "No APK files found"
+        exit 0
+    fi
+
+    RESULTS=$(printf "%s\n" "${APK_FILES[@]}" | xargs -P "$THREADS" -I {} bash -c 'process_apk "$@"' _ {})
+
+    SUCCESS_COUNT=$(echo "$RESULTS" | grep -c SUCCESS || true)
+    FAIL_COUNT=$(echo "$RESULTS" | grep -c FAIL || true)
 fi
 
-echo -e "${GREEN}[*] Using Frida version: $FRIDA_VERSION ${NC}" 
-echo -e "${GREEN}[*]  Patching APK with Objection... ${NC}" 
+# -------- SUMMARY --------
+TOTAL=$((SUCCESS_COUNT + FAIL_COUNT))
 
-# --- Patch APK ---
-objection patchapk \
-    --source "$APK" \
-    --architecture "$ARCH"
-
-# --- Find output file ---
-PATCHED_APK=$(ls -t "${BASENAME}.objection.apk" 2>/dev/null | head -n1)
-
-if [[ -z "$PATCHED_APK" ]]; then
-    echo -e "${RED}[*] Error: Could not find patched APK output ${NC}" 
-    exit 1
-fi
-
-# --- New filename ---
-NEW_NAME="${BASENAME}-${ARCH}-frida-${FRIDA_VERSION}.apk"
-
-# --- Rename ---
-mv "$PATCHED_APK" "$NEW_NAME"
-
-echo -e "${GREEN}[+]  Patched APK saved as: $NEW_NAME ${NC}" 
+log "INFO" "-------- SUMMARY --------"
+log "INFO" "Total processed: $TOTAL"
+log "INFO" "Successful: $SUCCESS_COUNT"
+log "INFO" "Failed: $FAIL_COUNT"
+log "INFO" "Output dir: $OUTPUT_DIR"
+log "INFO" "Failed dir: $FAILED_DIR"
