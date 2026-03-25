@@ -1,0 +1,59 @@
+#!/bin/bash
+
+#A simple script which will sign an apk with a debug cert.
+# WIP
+#@Author: RB
+#@version 0.1
+
+BLUE='\033[1;36m'
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+NC='\033[0m'
+
+set -e
+set -o pipefail
+
+echo -e "${RED} This script is a WIP. Bugs do exist. ${NC}" 
+
+echo -e "${GREEN} Usage android-signapk apkfile.apk ${NC}"       
+
+apk="$1"
+
+echo -e "${GREEN}[*] Running Zipalign ${NC}" 
+zipalign -f 4 "$apk" "${apk%.apk}-aligned.apk"
+
+KEYSTORE="$HOME/.android/debug.keystore"
+
+# Ensure keystore exists
+if [[ ! -f "$KEYSTORE" ]]; then
+	echo -e "${RED}[INFO] Debug keystore not found. Generating one... ${NC}" 
+
+	mkdir -p "$(dirname "$KEYSTORE")"
+
+	keytool -genkeypair \
+		-v \
+		-keystore "$KEYSTORE" \
+		-storepass android \
+		-alias androiddebugkey \
+		-keypass android \
+		-keyalg RSA \
+		-keysize 2048 \
+		-validity 10000 \
+		-dname "CN=Android Debug,O=Android,C=US"
+
+	echo -e "${GREEN}[INFO] Debug keystore generated at $KEYSTORE ${NC}" 
+else
+	echo -e "${GREEN}[INFO] Using existing debug keystore ${NC}" 
+fi
+
+# Sign APK
+
+echo -e "${GREEN}[*] Running apksigner ${NC}" 
+apksigner sign \
+	--ks ~/.android/debug.keystore \
+	--ks-pass pass:android \
+	--key-pass pass:android \
+	--out "signed-$apk" \
+	"${apk%.apk}-aligned.apk"
+
+rm -f "${apk%.apk}-aligned.apk"
