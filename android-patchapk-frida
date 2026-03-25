@@ -1,0 +1,67 @@
+#!/bin/bash
+
+#A simple script which will patch an app with frida 
+#@Author: RB
+#@version 0.1
+
+
+BLUE='\033[1;36m'
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+NC='\033[0m'
+
+set -e
+set -o pipefail
+
+# --- Usage ---
+# ./android-patchapk-frida <apk_file> <architecture>
+# Example: ./android-patchapk-frida app.apk arm64
+
+APK="$1"
+ARCH="$2"
+
+if [[ -z "$APK" || -z "$ARCH" ]]; then
+    echo -e "${GREEN}[*] Usage: $0 <apk_file> <architecture> ${NC}" 
+    echo -e "${GREEN}[*] Example architectures: arm, arm64, x86, x86_64 ${NC}" 
+    exit 1
+fi
+
+if [[ ! -f "$APK" ]]; then
+    echo -e "${RED}[*] Error: APK file not found ${NC}" 
+    exit 1
+fi
+
+# --- Extract base filename ---
+BASENAME=$(basename "$APK" .apk)
+
+# --- Get Frida version ---
+FRIDA_VERSION=$(frida --version 2>/dev/null || true)
+
+if [[ -z "$FRIDA_VERSION" ]]; then
+    echo -e "${RED}[*] Warning: Could not detect Frida version, defaulting to unknown ${NC}" 
+    FRIDA_VERSION="unknown"
+fi
+
+echo -e "${GREEN}[*] Using Frida version: $FRIDA_VERSION ${NC}" 
+echo -e "${GREEN}[*]  Patching APK with Objection... ${NC}" 
+
+# --- Patch APK ---
+objection patchapk \
+    --source "$APK" \
+    --architecture "$ARCH"
+
+# --- Find output file ---
+PATCHED_APK=$(ls -t "${BASENAME}.objection.apk" 2>/dev/null | head -n1)
+
+if [[ -z "$PATCHED_APK" ]]; then
+    echo -e "${RED}[*] Error: Could not find patched APK output ${NC}" 
+    exit 1
+fi
+
+# --- New filename ---
+NEW_NAME="${BASENAME}-${ARCH}-frida-${FRIDA_VERSION}.apk"
+
+# --- Rename ---
+mv "$PATCHED_APK" "$NEW_NAME"
+
+echo -e "${GREEN}[+]  Patched APK saved as: $NEW_NAME ${NC}" 
