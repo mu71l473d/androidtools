@@ -15,5 +15,5 @@ set -o pipefail
 
 echo -e "${GREEN} This script finds the frida-server version on android through ADB. ${NC}"
 
-adb shell -c 'su && /data/local/tmp/frida-server --version'
+adb shell "su -c '/data/local/tmp/frida-server --version'"
 
