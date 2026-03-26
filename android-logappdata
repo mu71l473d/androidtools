@@ -31,6 +31,7 @@ if [ -z "$(adb shell pidof -s $get_package)" ];
 then
     echo -e "${GREEN}[*] Found no PID, so trying to start the MainActivity: ${NC}"
     adb shell am start -n $get_package/$get_package.MainActivity
+    
     echo -e "${GREEN}[*] sleeping, so the MainActivity can start: ${NC}"
     sleep 3
     adb logcat --pid="$(adb shell pidof -s $get_package)" | tee -a adb-logcat-$get_package.log

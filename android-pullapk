@@ -26,6 +26,7 @@ adb devices | sed -n '2p'
 
 get_location="$(adb shell pm list packages | grep -i $1 | awk -F':' '{print $2}')"
 get_version="$(adb shell dumpsys package ${get_location} | grep versionName | awk -F'=' '{print $2}')"
+
 echo -e "\n${GREEN}[*] The used package is ${get_location} with version number ${get_version}. ${NC}"
 echo -e "\n${GREEN}[*] setting the outputfolder to ./extracted_${get_location}-${get_version} ${NC}" 
 destination="extracted_${get_location}-${get_version}"

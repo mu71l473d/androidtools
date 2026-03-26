@@ -159,7 +159,6 @@ sign_apk() {
 	fi
 
 	# Sign APK
-	
 	echo -e "${GREEN}[*] Running apksigner ${NC}" 
     apksigner sign \
         --ks ~/.android/debug.keystore \
@@ -210,7 +209,7 @@ process_apk() {
     fi
 
     log "INFO" "Success: $NEW_NAME"
-    SUCCESS"
+    SUCCESS
 }
 
 export -f log detect_arch sign_apk process_apk

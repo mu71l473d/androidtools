@@ -19,7 +19,7 @@ if [ -z "$1" ]; then
     echo "Ex.: android_bruteactivities \"insecureshop\""
 fi
 if [ -z "$(adb shell pm list packages | grep -i $1)" ]; then
-    echo "no correct packages could be found with this name or term"
+    echo -e "${RED}No correct packages could be found with this name or term ${NC}"
 fi
 
 echo -e "${GREEN}[*] The device the app is extracted from is: ${NC}"      
