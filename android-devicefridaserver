@@ -1,0 +1,28 @@
+#!/bin/bash
+# Pass in frida-server version as command line argument on (virtual) android device
+#@Author: RB
+#@version 0.1
+
+su 
+
+FRIDA_VERSION=$1
+
+# Remount root filesystem to read write, might require adb root
+mount -o remount,rw / 
+
+
+# Pull frida-server package
+if wget -O frida-server.xz \
+         "https://github.com/frida/frida/releases/download/${FRIDA_VERSION}/frida-server-${FRIDA_VERSION}-android-arm64.xz"; then
+    busybox xz -d frida-server.xz
+else
+    echo "[!] Failed to download frida-server."
+    exit 1
+fi
+
+# Kill any existing frida-server process
+pkill -9 frida-server >/dev/null 2>&1 || true 
+
+# Start frida-server on all interfaces 
+mv frida-server /data/local/tmp/ && chmod 755 /data/local/tmp/frida-server && nohup /data/local/tmp/frida-server -l 0.0.0.0 >/dev/null 2>&1 &
+echo "[+] Started frida-server version $FRIDA_VERSION listening on all interfaces (0.0.0.0)." 
