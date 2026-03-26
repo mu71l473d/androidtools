@@ -14,6 +14,8 @@ set -e
 set -o pipefail
 
 echo -e "${GREEN} This script finds the frida-server version on android through ADB. ${NC}"
+echo -e "${GREEN}[*] The device the app is extracted from is: ${NC}"      
+adb devices | sed -n '2p'
 
+echo -e "${GREEN}[*] Using ADB shell to find the frida-server${NC}"  
 adb shell "su -c '/data/local/tmp/frida-server --version'"
-
