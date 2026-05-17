@@ -19,3 +19,36 @@ adb devices | sed -n '2p'
 
 echo -e "${GREEN}[*] Using ADB shell to find the frida-server ${NC}"  
 adb shell "su -c '/data/local/tmp/frida-server --version'"
+
+
+# Try frida-server first
+FRIDA_VERSION=$(adb shell "/data/local/tmp/frida-server --version" 2>/dev/null | tr -d '\r')
+
+if [ -n "$FRIDA_VERSION" ]; then
+    echo -e "${GREEN}[*] frida-server version: $FRIDA_VERSION ${NC}" 
+    exit 0
+fi
+
+# Try frida command if installed globally
+FRIDA_VERSION=$(adb shell "frida --version" 2>/dev/null | tr -d '\r')
+
+if [ -n "$FRIDA_VERSION" ]; then
+    echo -e "${GREEN}[*] frida version: $FRIDA_VERSION ${NC}" 
+    exit 0
+fi
+
+# Try locating frida-server automatically
+FRIDA_PATH=$(adb shell "find /data /system /vendor -name 'frida-server' 2>/dev/null | head -n 1" | tr -d '\r')
+
+if [ -n "$FRIDA_PATH" ]; then
+    FRIDA_VERSION=$(adb shell "$FRIDA_PATH --version" 2>/dev/null | tr -d '\r')
+
+    if [ -n "$FRIDA_VERSION" ]; then
+        echo -e "${GREEN}[*] frida-server found at: $FRIDA_PATH ${NC}" 
+        echo -e "${GREEN}[*] version: $FRIDA_VERSION ${NC}" 
+        exit 0
+    fi
+fi
+
+echo -e "${RED}[*] Frida not found on device ${NC}" 
+exit 1
