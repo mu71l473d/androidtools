@@ -28,6 +28,16 @@ get_package="$(adb shell pm list packages | grep -i $1 | awk -F':' '{print $2}')
 
 echo -e "${GREEN}[*] Found package is $get_package ${NC}" 
 
+read -p "Your current folder is $(pwd). Do you want to continue? (y/n) " answer
+
+if [[ "$answer" =~ ^[Yy]$ ]]; then
+    echo "Continuing..."
+else
+    echo "Aborted."
+    exit 1
+fi
+
+mkdir -p media
 cd media
 echo -e "${GREEN}[*] Starting the bruteforcing of Activities and sleeping inbetween. ${NC}"  
 for activity in $(adb shell dumpsys package | grep -i $get_package | grep Activity | awk -F ' ' '{print $2}')
