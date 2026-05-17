@@ -1,0 +1,28 @@
+#!/bin/bash
+
+#A simple script to find an app package name based on a search on adb shell pm. 
+#@Author: RB
+#@version 0.2
+
+
+BLUE='\033[1;36m'
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+NC='\033[0m'
+
+if [ -z "$1" ]; then
+    echo -e "${GREEN}You must pass a package or name to search to this function! ${NC}"
+    echo "Ex.: android-packagenameguessr \"com.kiwa.insecureshop\" or"
+    echo "Ex.: android-packagenameguessr \"insecureshop\""
+fi
+
+if [ -z "$(adb shell pm list packages | grep -i $1)" ]; then
+  echo -e "${RED}[*] no correct packages could be found with this name or term ${NC}"
+	exit 1
+fi
+
+echo -e "${GREEN}[*] The device the app is extracted from is: ${NC}"      
+adb devices | sed -n '2p'
+
+echo -e "${GREEN}[*] The packages are ${NC}" 
+echo "$(adb shell pm list packages | grep -i $1)"
