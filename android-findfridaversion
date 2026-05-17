@@ -16,12 +16,16 @@ echo -e "${GREEN} This script finds the frida-server version on android through 
 echo -e "${GREEN}[*] The device the app is extracted from is: ${NC}"      
 adb devices | sed -n '2p'
 
-echo -e "${GREEN}[*] Using ADB shell to find the frida-server ${NC}"  
-adb shell "su -c '/data/local/tmp/frida-server --version'"
-
-
 # Try frida-server first
 FRIDA_VERSION=$(adb shell "/data/local/tmp/frida-server --version" 2>/dev/null | tr -d '\r')
+
+if [ -n "$FRIDA_VERSION" ]; then
+    echo -e "${GREEN}[*] frida-server version: $FRIDA_VERSION ${NC}" 
+    exit 0
+fi
+
+# Try frida-server with root permissions
+FRIDA_VERSION=$(adb shell "su -c '/data/local/tmp/frida-server --version'" 2>/dev/null | tr -d '\r')
 
 if [ -n "$FRIDA_VERSION" ]; then
     echo -e "${GREEN}[*] frida-server version: $FRIDA_VERSION ${NC}" 
