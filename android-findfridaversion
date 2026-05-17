@@ -37,6 +37,7 @@ if [ -n "$FRIDA_VERSION" ]; then
 fi
 
 # Try locating frida-server automatically
+echo -e "${GREEN}[*] Because earlier options didn't work, now using find. This can take some time. ${NC}"  
 FRIDA_PATH=$(adb shell "find /data /system /vendor -name 'frida-server' 2>/dev/null | head -n 1" | tr -d '\r')
 
 if [ -n "$FRIDA_PATH" ]; then
