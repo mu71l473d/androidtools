@@ -19,6 +19,7 @@ fi
 
 if [ -z "$(adb shell pm list packages | grep -i $1)" ]; then
     echo "no correct packages could be found with this name or term"
+	exit 1
 fi
 
 echo -e "${GREEN}[*] The device the app is extracted from is: ${NC}"      
